@@ -1,0 +1,48 @@
+services:
+  postgres:
+    image: postgres:15
+    container_name: postgres_db
+    environment:
+      POSTGRES_USER: metabase_user
+      POSTGRES_PASSWORD: metabase_pass
+      POSTGRES_DB: metabase_db
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+    ports:
+      - "5433:5432"
+
+  metabase:
+    image: metabase/metabase:v0.50.23
+    container_name: metabase
+    environment:
+      MB_DB_TYPE: postgres
+      MB_DB_DBNAME: metabase_db
+      MB_DB_PORT: 5432
+      MB_DB_USER: metabase_user
+      MB_DB_PASS: metabase_pass
+      MB_DB_HOST: postgres
+    ports:
+      - "3000:3000"
+    depends_on:
+      - postgres
+
+  test-source:
+    build:
+      context: .
+    image: src-test:1.0
+    container_name: test-source
+    command: python generate_data.py
+    volumes:
+      - ./:/app
+    environment:
+      DB_NAME: metabase_db
+      DB_USER: metabase_user
+      DB_PASSWORD: metabase_pass
+      DB_HOST: postgres
+      DB_PORT: 5432
+    depends_on:
+      - postgres
+
+volumes:
+  postgres_data:
